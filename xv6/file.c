@@ -104,8 +104,10 @@ fileread(struct file *f, char *addr, int n)
     return piperead(f->pipe, addr, n);
   if(f->type == FD_INODE){
     ilock(f->ip);
-    if((r = readi(f->ip, addr, f->off, n)) > 0)
+    if((r = readi(f->ip, addr, f->off, n)) > 0) {
       f->off += r;
+      f->read_bytes += r; // Increment the read_bytes counter
+    }
     iunlock(f->ip);
     return r;
   }
@@ -139,8 +141,10 @@ filewrite(struct file *f, char *addr, int n)
 
       begin_op();
       ilock(f->ip);
-      if ((r = writei(f->ip, addr + i, f->off, n1)) > 0)
+      if ((r = writei(f->ip, addr + i, f->off, n1)) > 0) {
         f->off += r;
+    	f->write_bytes += r; // Increment the write_bytes counter  
+      }
       iunlock(f->ip);
       end_op();
 

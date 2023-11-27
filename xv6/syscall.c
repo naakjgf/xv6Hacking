@@ -1,10 +1,16 @@
 #include "types.h"
 #include "defs.h"
 #include "param.h"
+#include "spinlock.h"   // include for struct spinlock
+#include "sleeplock.h"  //including for struct sleeplock
+#include "fs.h"         //including for NDIRECT which for some reason are having an issue in file.h after including it here?
+#include "file.h"       //so we know of struct file
+#include "stat.h"       //to include the definition of struct iostats here
+#include "param.h"
 #include "memlayout.h"
 #include "mmu.h"
-#include "proc.h"
 #include "x86.h"
+#include "proc.h"
 #include "syscall.h"
 
 // User code makes a system call with INT T_SYSCALL.
@@ -104,6 +110,7 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_halt(void);
+extern int sys_getiostats(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -128,7 +135,33 @@ static int (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_halt]    sys_halt,
+[SYS_getiostats] sys_getiostats,
 };
+
+//System call which gets the iostats of a specific file, including both the read and written bytes of it.
+int
+sys_getiostats(void)
+{
+  int fd;
+  struct file *f;
+  struct iostats *stats;
+
+  if(argint(0, &fd) < 0 || argptr(1, (void*)&stats, sizeof(*stats)) < 0)
+    return -1;
+
+  //The current process.
+  struct proc *kurrproc = myproc();
+
+  //Checks the file descriptor is valid.
+  if(fd < 0 || fd >= NOFILE || (f = kurrproc->ofile[fd]) == 0)
+    return -1;
+
+  // Copy the read and write statistics to user space completing the goal of this method.
+  stats->read_bytes = f->read_bytes;
+  stats->write_bytes = f->write_bytes;
+
+  return 0;
+}
 
 void
 syscall(void)

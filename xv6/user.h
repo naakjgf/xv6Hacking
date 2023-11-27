@@ -1,4 +1,7 @@
-struct stat;
+
+#include "types.h"
+#include "stat.h"  //to include the definition of struct iostats here
+
 struct rtcdate;
 
 // system calls
@@ -24,6 +27,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int halt(void);
+int getiostats(int fd, struct iostats* stats);
 
 // ulib.c
 int stat(const char*, struct stat*);
